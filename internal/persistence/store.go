@@ -4,12 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
 
 	_ "benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/sqlitedriver"
 )
 
-type Store struct{ db *sql.DB }
+type Store struct {
+	db               *sql.DB
+	archivedDossiers sync.Map
+}
 type Tx struct{ tx *sql.Tx }
 
 func Open(path string) (*Store, error) {
