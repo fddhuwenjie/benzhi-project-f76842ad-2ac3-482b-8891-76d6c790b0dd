@@ -48,6 +48,10 @@ func (s *Store) WithTx(ctx context.Context, fn func(*Tx) error) error {
 		_ = tx.Rollback()
 		return err
 	}
+	if err = ctx.Err(); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("提交事务: %w", err)
 	}

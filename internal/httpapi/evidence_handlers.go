@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"net/http"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/application"
@@ -32,7 +31,7 @@ func (a *API) SubmitEvidence(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.SubmitEvidence(context.WithoutCancel(r.Context()), r.PathValue("investigation_id"), rev, who,
+	result, err := a.service.SubmitEvidence(r.Context(), r.PathValue("investigation_id"), rev, who,
 		application.EvidenceInput{PreviousEvidenceID: input.PreviousEvidenceID, Description: input.Description, MediaType: input.MediaType, ContentDigest: input.ContentDigest})
 	if err != nil {
 		fail(w, r, err)
@@ -63,7 +62,7 @@ func (a *API) ReviewEvidence(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.ReviewEvidence(context.WithoutCancel(r.Context()), r.PathValue("evidence_id"), rev, who, application.ReviewInput{Decision: input.Decision, Comment: input.Comment})
+	result, err := a.service.ReviewEvidence(r.Context(), r.PathValue("evidence_id"), rev, who, application.ReviewInput{Decision: input.Decision, Comment: input.Comment})
 	if err != nil {
 		fail(w, r, err)
 		return

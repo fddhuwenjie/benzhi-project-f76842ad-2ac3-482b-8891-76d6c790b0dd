@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -75,6 +76,9 @@ func fail(w http.ResponseWriter, r *http.Request, err error) {
 		case domain.CodeState, domain.CodeChain, domain.CodeClosed:
 			status = http.StatusUnprocessableEntity
 		}
+	} else if errors.Is(err, context.Canceled) {
+		status = 499
+		detail = errorDetail{Code: string(domain.CodeInternal), Message: "客户端已取消请求"}
 	}
 	writeJSON(w, status, errorBody{Error: detail, RequestID: requestID(r.Context())})
 }

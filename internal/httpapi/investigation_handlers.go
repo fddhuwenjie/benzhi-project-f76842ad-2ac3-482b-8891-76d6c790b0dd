@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 
@@ -51,7 +50,7 @@ func (a *API) ClaimInvestigation(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.ClaimInvestigation(context.WithoutCancel(r.Context()), r.PathValue("investigation_id"), rev, who)
+	result, err := a.service.ClaimInvestigation(r.Context(), r.PathValue("investigation_id"), rev, who)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -81,7 +80,7 @@ func (a *API) ReleaseInvestigation(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.ReleaseInvestigation(context.WithoutCancel(r.Context()), r.PathValue("investigation_id"), rev, who, request.Reason)
+	result, err := a.service.ReleaseInvestigation(r.Context(), r.PathValue("investigation_id"), rev, who, request.Reason)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -113,7 +112,7 @@ func (a *API) RecordConclusion(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.RecordConclusion(context.WithoutCancel(r.Context()), r.PathValue("investigation_id"), rev, who, application.ConclusionInput{RootCause: input.RootCause, ImpactAssessment: input.ImpactAssessment, RequiredAction: input.RequiredAction})
+	result, err := a.service.RecordConclusion(r.Context(), r.PathValue("investigation_id"), rev, who, application.ConclusionInput{RootCause: input.RootCause, ImpactAssessment: input.ImpactAssessment, RequiredAction: input.RequiredAction})
 	if err != nil {
 		fail(w, r, err)
 		return

@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"net/http"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/domain"
@@ -55,7 +54,7 @@ func (a *API) RegisterTransfer(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.RegisterTransfer(context.WithoutCancel(r.Context()), r.PathValue("dossier_id"), r.Header.Get("Idempotency-Key"), rev, who, input.input())
+	result, err := a.service.RegisterTransfer(r.Context(), r.PathValue("dossier_id"), r.Header.Get("Idempotency-Key"), rev, who, input.input())
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -88,7 +87,7 @@ func (a *API) RegisterTransferBatch(w http.ResponseWriter, r *http.Request) {
 	for index, item := range request.Transfers {
 		inputs[index] = item.input()
 	}
-	result, err := a.service.RegisterTransferBatch(context.WithoutCancel(r.Context()), r.PathValue("dossier_id"), r.Header.Get("Idempotency-Key"), rev, who, inputs)
+	result, err := a.service.RegisterTransferBatch(r.Context(), r.PathValue("dossier_id"), r.Header.Get("Idempotency-Key"), rev, who, inputs)
 	if err != nil {
 		fail(w, r, err)
 		return
