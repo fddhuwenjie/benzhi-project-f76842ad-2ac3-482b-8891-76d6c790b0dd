@@ -8,6 +8,10 @@ import (
 )
 
 func (a *API) Health(w http.ResponseWriter, r *http.Request) {
+	if err := a.service.Ping(r.Context()); err != nil {
+		fail(w, r, err)
+		return
+	}
 	success(w, r, http.StatusOK, map[string]string{"status": "ok"})
 }
 

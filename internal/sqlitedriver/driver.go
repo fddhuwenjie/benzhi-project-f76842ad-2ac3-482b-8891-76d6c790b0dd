@@ -116,7 +116,25 @@ func (c *conn) begin(ctx context.Context) (driver.Tx, error) {
 	}
 	return &transaction{conn: c}, nil
 }
-func (c *conn) Ping(ctx context.Context) error { return c.execDirect(ctx, "SELECT 1") }
+func (c *conn) Ping(ctx context.Context) error {
+	stmt, err := c.Prepare("SELECT 1")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	s := stmt.(*statement)
+	if err = s.prepareRun(ctx, nil); err != nil {
+		return err
+	}
+	// SELECT 1 返回一行（SQLITE_ROW），而非 SQLITE_DONE，因此不能复用只接受
+	// 无结果集语句的 execDirect；推进一次结果集即可确认连接可用。
+	switch code := C.sqlite3_step(s.stmt); code {
+	case sqliteRow, sqliteDone:
+		return nil
+	default:
+		return c.err(code)
+	}
+}
 func (c *conn) execDirect(ctx context.Context, query string) error {
 	stmt, err := c.Prepare(query)
 	if err != nil {

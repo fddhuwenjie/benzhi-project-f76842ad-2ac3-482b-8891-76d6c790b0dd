@@ -1,6 +1,7 @@
 package application
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"time"
@@ -35,4 +36,10 @@ type Actor struct {
 
 type RevisionCommand struct {
 	Revision int64 `json:"revision"`
+}
+
+// Ping 探测底层数据存储是否可用。健康检查通过该方法实际确认数据库可达，
+// 而非无条件报告健康，避免监控在数据库不可用时误判实例状态。
+func (s *Service) Ping(ctx context.Context) error {
+	return s.store.Ping(ctx)
 }
