@@ -160,7 +160,7 @@ func (d *SampleDossier) ApplyTransferBatch(expected int64, anomalous bool) error
 	if err := d.CheckRevision(expected); err != nil {
 		return err
 	}
-	if !slices.Contains([]DossierStatus{DossierSubmitted, DossierInTransit}, d.Status) {
+	if !slices.Contains([]DossierStatus{DossierSubmitted, DossierInTransit, DossierInvestigation}, d.Status) {
 		return NewError(CodeState, "当前档案状态不能登记交接")
 	}
 	if anomalous {
@@ -179,7 +179,7 @@ func (d *SampleDossier) ApplyTransfer(expected int64, anomalous bool) error {
 	if err := d.CheckRevision(expected); err != nil {
 		return err
 	}
-	if !slices.Contains([]DossierStatus{DossierSubmitted, DossierInTransit}, d.Status) {
+	if !slices.Contains([]DossierStatus{DossierSubmitted, DossierInTransit, DossierInvestigation}, d.Status) {
 		return NewError(CodeState, "当前档案状态不能登记交接")
 	}
 	if anomalous {

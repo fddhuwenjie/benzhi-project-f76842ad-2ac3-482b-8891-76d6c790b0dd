@@ -84,8 +84,26 @@ func (s *Service) RegisterTransfer(ctx context.Context, dossierID, requestID str
 		}
 		var investigation *domain.AnomalyInvestigation
 		if report.HasAnomaly() {
-			investigation = domain.NewInvestigation(s.newID("inv"), dossierID, report.TriggerCodes(), s.now())
-			if err = tx.InsertInvestigation(ctx, investigation); err != nil {
+			existing, err := tx.InvestigationByDossier(ctx, dossierID)
+			if err != nil {
+				return err
+			}
+			if existing == nil {
+				investigation = domain.NewInvestigation(s.newID("inv"), dossierID, report.TriggerCodes(), s.now())
+				if err = tx.InsertInvestigation(ctx, investigation); err != nil {
+					return err
+				}
+			} else {
+				previousInv := existing.Revision
+				existing.MergeTriggers(report.TriggerCodes())
+				if err = tx.UpdateInvestigation(ctx, existing, previousInv); err != nil {
+					return err
+				}
+				investigation = existing
+			}
+		} else {
+			investigation, err = tx.InvestigationByDossier(ctx, dossierID)
+			if err != nil {
 				return err
 			}
 		}
@@ -160,7 +178,7 @@ func (s *Service) RegisterTransferBatch(ctx context.Context, dossierID, requestI
 		if err = dossier.CheckRevision(revision); err != nil {
 			return err
 		}
-		if dossier.Status != domain.DossierSubmitted && dossier.Status != domain.DossierInTransit {
+		if dossier.Status != domain.DossierSubmitted && dossier.Status != domain.DossierInTransit && dossier.Status != domain.DossierInvestigation {
 			return domain.NewError(domain.CodeState, "当前档案状态不能登记交接")
 		}
 		existing, err := tx.ListTransfers(ctx, dossierID)
@@ -209,8 +227,26 @@ func (s *Service) RegisterTransferBatch(ctx context.Context, dossierID, requestI
 		}
 		var investigation *domain.AnomalyInvestigation
 		if anomalous {
-			investigation = domain.NewInvestigation(s.newID("inv"), dossierID, triggers, s.now())
-			if err = tx.InsertInvestigation(ctx, investigation); err != nil {
+			existingInv, err := tx.InvestigationByDossier(ctx, dossierID)
+			if err != nil {
+				return err
+			}
+			if existingInv == nil {
+				investigation = domain.NewInvestigation(s.newID("inv"), dossierID, triggers, s.now())
+				if err = tx.InsertInvestigation(ctx, investigation); err != nil {
+					return err
+				}
+			} else {
+				previousInv := existingInv.Revision
+				existingInv.MergeTriggers(triggers)
+				if err = tx.UpdateInvestigation(ctx, existingInv, previousInv); err != nil {
+					return err
+				}
+				investigation = existingInv
+			}
+		} else {
+			investigation, err = tx.InvestigationByDossier(ctx, dossierID)
+			if err != nil {
 				return err
 			}
 		}

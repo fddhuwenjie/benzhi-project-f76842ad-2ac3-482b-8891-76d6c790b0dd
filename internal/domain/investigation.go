@@ -20,6 +20,27 @@ func NewInvestigation(id, dossierID string, triggers []string, now time.Time) *A
 		DetectedAt: NormalizeTime(now), Status: InvestigationUnassigned, Revision: 1}
 }
 
+// MergeTriggers appends any new trigger codes to the investigation, preserving the
+// original detection timestamp and investigation identity. This supports registering
+// additional custody transfers after an anomaly has already been detected without
+// creating a duplicate investigation or losing the original trigger information.
+func (i *AnomalyInvestigation) MergeTriggers(triggers []string) {
+	for _, code := range triggers {
+		if !i.hasTrigger(code) {
+			i.TriggerCodes = append(i.TriggerCodes, code)
+		}
+	}
+}
+
+func (i *AnomalyInvestigation) hasTrigger(code string) bool {
+	for _, existing := range i.TriggerCodes {
+		if existing == code {
+			return true
+		}
+	}
+	return false
+}
+
 func (i *AnomalyInvestigation) CheckRevision(expected int64) error {
 	if expected <= 0 {
 		return FieldError("revision", "必须提供正数修订号")
