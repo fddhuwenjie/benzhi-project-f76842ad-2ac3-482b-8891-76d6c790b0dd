@@ -40,13 +40,15 @@ type RevisionCommand struct {
 
 type operationFailure struct {
 	operation string
-	message   string
+	err       error
 }
 
 func (e *operationFailure) Error() string {
-	return fmt.Sprintf("%s失败: %s", e.operation, e.message)
+	return fmt.Sprintf("%s失败: %s", e.operation, e.err)
 }
 
-func failedOperation(operation, message string) error {
-	return &operationFailure{operation: operation, message: message}
+func (e *operationFailure) Unwrap() error { return e.err }
+
+func failedOperation(operation string, err error) error {
+	return &operationFailure{operation: operation, err: err}
 }
