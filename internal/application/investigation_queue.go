@@ -40,9 +40,11 @@ type InvestigationQueuePage struct {
 }
 
 type queueCursor struct {
-	StatusRank int       `json:"status_rank"`
-	DetectedAt time.Time `json:"detected_at"`
-	ID         string    `json:"investigation_id"`
+	StatusRank int                  `json:"status_rank"`
+	DetectedAt time.Time            `json:"detected_at"`
+	ID         string               `json:"investigation_id"`
+	Seen       []string             `json:"seen,omitempty"`
+	seenSet    map[string]struct{} `json:"-"`
 }
 
 func queueRank(status domain.InvestigationStatus) int {
@@ -95,11 +97,19 @@ func decodeQueueCursor(value string) (*queueCursor, error) {
 		return nil, domain.FieldError("cursor", "游标无效")
 	}
 	cursor.DetectedAt = domain.NormalizeTime(cursor.DetectedAt)
+	seen := make(map[string]struct{}, len(cursor.Seen))
+	for _, id := range cursor.Seen {
+		if strings.TrimSpace(id) == "" {
+			return nil, domain.FieldError("cursor", "游标无效")
+		}
+		seen[id] = struct{}{}
+	}
+	cursor.seenSet = seen
 	return &cursor, nil
 }
 
-func encodeQueueCursor(item InvestigationQueueItem) string {
-	payload, _ := json.Marshal(queueCursor{StatusRank: queueRank(item.Status), DetectedAt: item.DetectedAt, ID: item.InvestigationID})
+func encodeQueueCursor(item InvestigationQueueItem, seen []string) string {
+	payload, _ := json.Marshal(queueCursor{StatusRank: queueRank(item.Status), DetectedAt: item.DetectedAt, ID: item.InvestigationID, Seen: seen})
 	return base64.RawURLEncoding.EncodeToString(payload)
 }
 
@@ -170,9 +180,15 @@ func (s *Service) ListInvestigationQueue(ctx context.Context, actor Actor, filte
 		item := InvestigationQueueItem{InvestigationID: investigation.ID, DossierID: investigation.DossierID, SampleCode: row.Dossier.SampleCode,
 			TriggerCodes: append([]string(nil), investigation.TriggerCodes...), DetectedAt: investigation.DetectedAt, Status: investigation.Status,
 			AssignedReviewer: investigation.AssignedReviewer, Revision: investigation.Revision}
-		if cursor == nil || queueAfter(item, cursor) {
-			items = append(items, item)
+		if cursor != nil {
+			if _, ok := cursor.seenSet[item.InvestigationID]; ok {
+				continue
+			}
+			if !queueAfter(item, cursor) {
+				continue
+			}
 		}
+		items = append(items, item)
 	}
 	sort.Slice(items, func(i, j int) bool {
 		leftRank, rightRank := queueRank(items[i].Status), queueRank(items[j].Status)
@@ -190,6 +206,13 @@ func (s *Service) ListInvestigationQueue(ctx context.Context, actor Actor, filte
 		return page, nil
 	}
 	page.Items = items[:filter.Limit]
-	page.NextCursor = encodeQueueCursor(page.Items[len(page.Items)-1])
+	nextSeen := make([]string, 0, len(page.Items))
+	if cursor != nil {
+		nextSeen = append(nextSeen, cursor.Seen...)
+	}
+	for _, item := range page.Items {
+		nextSeen = append(nextSeen, item.InvestigationID)
+	}
+	page.NextCursor = encodeQueueCursor(page.Items[len(page.Items)-1], nextSeen)
 	return page, nil
 }
