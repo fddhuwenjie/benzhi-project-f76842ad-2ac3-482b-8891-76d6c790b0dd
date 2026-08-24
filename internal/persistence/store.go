@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sync"
 	"time"
 
 	_ "benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/sqlitedriver"
@@ -11,6 +12,8 @@ import (
 
 type Store struct{ db *sql.DB }
 type Tx struct{ tx *sql.Tx }
+
+var diskDatabasePools sync.Map
 
 func Open(path string) (*Store, error) {
 	dsn := path
@@ -20,6 +23,13 @@ func Open(path string) (*Store, error) {
 	db, err := sql.Open("benzhi_sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("打开 SQLite: %w", err)
+	}
+	if path != ":memory:" {
+		pooled, loaded := diskDatabasePools.LoadOrStore(path, db)
+		if loaded {
+			_ = db.Close()
+			db = pooled.(*sql.DB)
+		}
 	}
 	db.SetMaxOpenConns(1)
 	db.SetConnMaxLifetime(0)
