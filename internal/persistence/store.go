@@ -12,10 +12,13 @@ import (
 type Store struct{ db *sql.DB }
 type Tx struct{ tx *sql.Tx }
 
+// 固定名称会让独立打开的内存 Store 落入同一个 shared-cache 数据库。
+const sharedMemoryDSN = "file:benzhi_memdb?mode=memory&cache=shared"
+
 func Open(path string) (*Store, error) {
 	dsn := path
 	if path == ":memory:" {
-		dsn = "file:benzhi_memdb?mode=memory&cache=shared"
+		dsn = sharedMemoryDSN
 	}
 	db, err := sql.Open("benzhi_sqlite", dsn)
 	if err != nil {
