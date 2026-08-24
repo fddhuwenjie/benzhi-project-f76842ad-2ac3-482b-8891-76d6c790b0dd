@@ -24,7 +24,39 @@ type TransferProgress struct {
 	Anomalies         []chaincheck.Finding `json:"anomalies"`
 }
 
+func cloneTransferProgress(source TransferProgress) *TransferProgress {
+	clone := source
+	clone.RemainingStations = append([]string(nil), source.RemainingStations...)
+	clone.BlockingGaps = append([]chaincheck.Finding(nil), source.BlockingGaps...)
+	clone.Anomalies = append([]chaincheck.Finding(nil), source.Anomalies...)
+	if source.Deadline != nil {
+		deadline := *source.Deadline
+		clone.Deadline = &deadline
+	}
+	if source.RemainingMinutes != nil {
+		remaining := *source.RemainingMinutes
+		clone.RemainingMinutes = &remaining
+	}
+	return &clone
+}
+
+func (s *Service) cachedTransferProgress(dossierID string) (*TransferProgress, bool) {
+	s.progressMu.RLock()
+	defer s.progressMu.RUnlock()
+	progress, found := s.progressCache[dossierID]
+	return cloneTransferProgress(progress), found
+}
+
+func (s *Service) rememberTransferProgress(dossierID string, progress *TransferProgress) {
+	s.progressMu.Lock()
+	defer s.progressMu.Unlock()
+	s.progressCache[dossierID] = *cloneTransferProgress(*progress)
+}
+
 func (s *Service) GetTransferProgress(ctx context.Context, dossierID string) (*TransferProgress, error) {
+	if progress, found := s.cachedTransferProgress(dossierID); found {
+		return progress, nil
+	}
 	dossier, err := s.store.GetDossier(ctx, dossierID)
 	if err != nil {
 		return nil, err
@@ -32,6 +64,7 @@ func (s *Service) GetTransferProgress(ctx context.Context, dossierID string) (*T
 	result := &TransferProgress{DossierRevision: dossier.Revision, TotalStations: len(dossier.ExpectedRoute), RemainingStations: []string{}, BlockingGaps: []chaincheck.Finding{}, Anomalies: []chaincheck.Finding{}}
 	if dossier.Status == domain.DossierDraft {
 		result.Status = "not_submitted"
+		s.rememberTransferProgress(dossierID, result)
 		return result, nil
 	}
 	transfers, err := s.store.ListTransfers(ctx, dossierID)
@@ -74,5 +107,6 @@ func (s *Service) GetTransferProgress(ctx context.Context, dossierID string) (*T
 		result.TimeRisk = "normal"
 	}
 	result.Status = string(dossier.Status)
+	s.rememberTransferProgress(dossierID, result)
 	return result, nil
 }
