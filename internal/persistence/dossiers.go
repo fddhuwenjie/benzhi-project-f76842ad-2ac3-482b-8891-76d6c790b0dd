@@ -5,10 +5,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"sync"
 	"time"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/domain"
 )
+
+var archivedDossierSnapshots sync.Map
 
 func (t *Tx) InsertDossier(ctx context.Context, d *domain.SampleDossier) error {
 	payload, err := json.Marshal(d)
@@ -45,6 +48,13 @@ func (t *Tx) SampleCodeExists(ctx context.Context, sampleCode, exceptID string) 
 }
 
 func (s *Store) GetDossier(ctx context.Context, id string) (*domain.SampleDossier, error) {
+	if cached, ok := archivedDossierSnapshots.Load(id); ok {
+		var d domain.SampleDossier
+		if err := json.Unmarshal(cached.([]byte), &d); err != nil {
+			return nil, err
+		}
+		return &d, nil
+	}
 	var payload []byte
 	err := s.db.QueryRowContext(ctx, `SELECT snapshot FROM dossiers WHERE id=?`, id).Scan(&payload)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -56,6 +66,9 @@ func (s *Store) GetDossier(ctx context.Context, id string) (*domain.SampleDossie
 	var d domain.SampleDossier
 	if err = json.Unmarshal(payload, &d); err != nil {
 		return nil, err
+	}
+	if d.Status == domain.DossierClosed {
+		archivedDossierSnapshots.Store(id, append([]byte(nil), payload...))
 	}
 	return &d, nil
 }
