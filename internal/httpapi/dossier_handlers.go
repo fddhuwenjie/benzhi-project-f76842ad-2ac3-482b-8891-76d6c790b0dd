@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"net/http"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/application"
@@ -22,7 +23,7 @@ func (a *API) CreateDossier(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.CreateDossier(r.Context(), who, input)
+	result, err := a.service.CreateDossier(context.WithoutCancel(r.Context()), who, input)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -67,7 +68,7 @@ func (a *API) ReviseDossier(w http.ResponseWriter, r *http.Request) {
 	if request.CollectedAt != nil {
 		patch.CollectedAt = &request.CollectedAt.Time
 	}
-	result, err := a.service.ReviseDossierPatch(r.Context(), r.PathValue("dossier_id"), rev, who, patch)
+	result, err := a.service.ReviseDossierPatch(context.WithoutCancel(r.Context()), r.PathValue("dossier_id"), rev, who, patch)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -127,7 +128,7 @@ func (a *API) SubmitDossier(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.SubmitDossier(r.Context(), r.PathValue("dossier_id"), rev, who)
+	result, err := a.service.SubmitDossier(context.WithoutCancel(r.Context()), r.PathValue("dossier_id"), rev, who)
 	if err != nil {
 		fail(w, r, err)
 		return
@@ -152,7 +153,7 @@ func (a *API) CloseDossier(w http.ResponseWriter, r *http.Request) {
 		fail(w, r, err)
 		return
 	}
-	result, err := a.service.CloseDossier(r.Context(), r.PathValue("dossier_id"), rev, who)
+	result, err := a.service.CloseDossier(context.WithoutCancel(r.Context()), r.PathValue("dossier_id"), rev, who)
 	if err != nil {
 		fail(w, r, err)
 		return
