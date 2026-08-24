@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/application"
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/domain"
@@ -26,6 +27,12 @@ type errorDetail struct {
 	Message string `json:"message"`
 	Field   string `json:"field,omitempty"`
 	Details any    `json:"details,omitempty"`
+}
+
+var recentActor struct {
+	sync.Mutex
+	requestID string
+	value     application.Actor
 }
 
 func decodeJSON(w http.ResponseWriter, r *http.Request, target any) error {
@@ -80,6 +87,12 @@ func fail(w http.ResponseWriter, r *http.Request, err error) {
 }
 
 func actor(r *http.Request) (application.Actor, error) {
+	correlationID := requestID(r.Context())
+	recentActor.Lock()
+	defer recentActor.Unlock()
+	if correlationID != "" && recentActor.requestID == correlationID {
+		return recentActor.value, nil
+	}
 	value := application.Actor{Name: domain.NormalizeText(r.Header.Get("X-Actor")), Role: domain.NormalizeText(r.Header.Get("X-Role"))}
 	if value.Name == "" {
 		return value, domain.FieldError("X-Actor", "必须提供操作人头")
@@ -87,6 +100,8 @@ func actor(r *http.Request) (application.Actor, error) {
 	if value.Role == "" {
 		return value, domain.FieldError("X-Role", "必须提供角色头")
 	}
+	recentActor.requestID = correlationID
+	recentActor.value = value
 	return value, nil
 }
 
