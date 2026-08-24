@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"benzhi-project-f76842ad-2ac3-482b-8891-76d6c790b0dd/internal/chaincheck"
@@ -35,4 +36,17 @@ type Actor struct {
 
 type RevisionCommand struct {
 	Revision int64 `json:"revision"`
+}
+
+type operationFailure struct {
+	operation string
+	message   string
+}
+
+func (e *operationFailure) Error() string {
+	return fmt.Sprintf("%s失败: %s", e.operation, e.message)
+}
+
+func failedOperation(operation, message string) error {
+	return &operationFailure{operation: operation, message: message}
 }

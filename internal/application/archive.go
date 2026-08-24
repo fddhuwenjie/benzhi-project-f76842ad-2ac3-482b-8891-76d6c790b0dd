@@ -132,7 +132,7 @@ func (s *Service) CloseDossier(ctx context.Context, id string, revision int64, a
 			map[string]any{"transfer_count": len(transfers), "preflight_conditions": report.Conditions}, s.now()))
 	})
 	if err != nil {
-		return nil, err
+		return nil, failedOperation("关闭档案", err.Error())
 	}
 	return dossier, nil
 }

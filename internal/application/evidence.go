@@ -85,7 +85,7 @@ func (s *Service) SubmitEvidence(ctx context.Context, investigationID string, re
 			map[string]any{"evidence_id": evidence.ID, "previous_evidence_id": previousEvidenceID, "digest": evidence.ContentDigest}, s.now()))
 	})
 	if err != nil {
-		return nil, err
+		return nil, failedOperation("提交整改证据", err.Error())
 	}
 	return evidence, nil
 }
@@ -144,7 +144,7 @@ func (s *Service) ReviewEvidence(ctx context.Context, evidenceID string, investi
 			map[string]any{"evidence_id": evidence.ID, "digest": evidence.ContentDigest, "decision": input.Decision, "comment": input.Comment}, s.now()))
 	})
 	if err != nil {
-		return nil, err
+		return nil, failedOperation("复核整改证据", err.Error())
 	}
 	return evidence, nil
 }

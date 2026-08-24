@@ -38,7 +38,7 @@ func (s *Service) ClaimInvestigation(ctx context.Context, id string, revision in
 		return tx.AppendAudit(ctx, domain.NewAudit(dossier.ID, "investigation.claimed", actor.Name, actor.Role, dossier.Revision, map[string]any{"investigation_id": id, "investigation_revision": investigation.Revision}, s.now()))
 	})
 	if err != nil {
-		return nil, err
+		return nil, failedOperation("认领调查", err.Error())
 	}
 	return investigation, nil
 }
@@ -108,7 +108,7 @@ func (s *Service) RecordConclusion(ctx context.Context, id string, revision int6
 		return tx.AppendAudit(ctx, domain.NewAudit(dossier.ID, "investigation.conclusion_recorded", actor.Name, actor.Role, dossier.Revision, input, s.now()))
 	})
 	if err != nil {
-		return nil, err
+		return nil, failedOperation("登记调查结论", err.Error())
 	}
 	return investigation, nil
 }
